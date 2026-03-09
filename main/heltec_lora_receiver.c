@@ -66,7 +66,7 @@ static spi_device_handle_t radio_spi;
 
 static void wait_while_busy(void) {
     while (gpio_get_level(PIN_NUM_BUSY)) {
-        esp_rom_delay_us(100);
+        ets_delay_us(100);
     }
 }
 
@@ -268,7 +268,7 @@ static esp_err_t radio_read_rx_payload(uint8_t *buf, uint8_t *size) {
     uint8_t status[2] = {0};
     ESP_ERROR_CHECK(radio_read_cmd(OPCODE_GET_RX_BUFFER_STATUS, status, sizeof(status)));
 
-    size_t payload_len = status[0];
+    uint8_t payload_len = status[0];
     uint8_t start_ptr = status[1];
 
     if (payload_len == 0 || payload_len > RX_BUFFER_MAX) {
@@ -289,7 +289,7 @@ static esp_err_t radio_read_rx_payload(uint8_t *buf, uint8_t *size) {
     wait_while_busy();
 
     memcpy(buf, &rx[3], payload_len);
-    *size = (uint8_t)payload_len;
+    *size = payload_len;
     return ESP_OK;
 }
 
