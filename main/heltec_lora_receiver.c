@@ -8,6 +8,10 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_rom_sys.h"
+#include "esp_idf_version.h"
+#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
+#include "rom/ets_sys.h"
+#endif
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -64,9 +68,17 @@ typedef struct {
 
 static spi_device_handle_t radio_spi;
 
+static inline void lora_delay_us(uint32_t us) {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+    esp_rom_delay_us(us);
+#else
+    ets_delay_us(us);
+#endif
+}
+
 static void wait_while_busy(void) {
     while (gpio_get_level(PIN_NUM_BUSY)) {
-        ets_delay_us(100);
+        lora_delay_us(100);
     }
 }
 
@@ -268,6 +280,7 @@ static esp_err_t radio_read_rx_payload(uint8_t *buf, uint8_t *size) {
     uint8_t status[2] = {0};
     ESP_ERROR_CHECK(radio_read_cmd(OPCODE_GET_RX_BUFFER_STATUS, status, sizeof(status)));
 
+    uint16_t payload_len = status[0];
     uint8_t payload_len = status[0];
     uint8_t start_ptr = status[1];
 
@@ -289,6 +302,7 @@ static esp_err_t radio_read_rx_payload(uint8_t *buf, uint8_t *size) {
     wait_while_busy();
 
     memcpy(buf, &rx[3], payload_len);
+    *size = (uint8_t)payload_len;
     *size = payload_len;
     return ESP_OK;
 }
