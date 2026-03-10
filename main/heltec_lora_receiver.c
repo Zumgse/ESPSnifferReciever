@@ -281,6 +281,7 @@ static esp_err_t radio_read_rx_payload(uint8_t *buf, uint8_t *size) {
     ESP_ERROR_CHECK(radio_read_cmd(OPCODE_GET_RX_BUFFER_STATUS, status, sizeof(status)));
 
     uint16_t payload_len = status[0];
+    uint8_t payload_len = status[0];
     uint8_t start_ptr = status[1];
 
     if (payload_len == 0 || payload_len > RX_BUFFER_MAX) {
@@ -302,6 +303,7 @@ static esp_err_t radio_read_rx_payload(uint8_t *buf, uint8_t *size) {
 
     memcpy(buf, &rx[3], payload_len);
     *size = (uint8_t)payload_len;
+    *size = payload_len;
     return ESP_OK;
 }
 
