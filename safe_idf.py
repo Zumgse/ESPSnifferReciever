@@ -23,6 +23,7 @@ import sys
 from pathlib import Path
 
 UNSAFE_CHARS = set("()")
+TARGET_CHIP = "esp32s3"  # Heltec WiFi LoRa 32 V3
 
 
 def is_unsafe_path(path: Path) -> bool:
@@ -30,14 +31,20 @@ def is_unsafe_path(path: Path) -> bool:
     return any(c in s for c in UNSAFE_CHARS)
 
 
+def run_idf(cmd_args: list[str], cwd: Path) -> int:
+    cmd = ["idf.py", *cmd_args]
+    env = os.environ.copy()
+    env.setdefault("IDF_TARGET", TARGET_CHIP)
+    print(f"[safe_idf] target={env['IDF_TARGET']}, running: {shlex.join(cmd)}")
+    return subprocess.call(cmd, cwd=cwd, env=env)
+
+
 def main() -> int:
     project_dir = Path(__file__).resolve().parent
     args = sys.argv[1:] or ["build"]
 
     if not is_unsafe_path(project_dir):
-        cmd = ["idf.py", *args]
-        print(f"[safe_idf] path is safe, running: {shlex.join(cmd)}")
-        return subprocess.call(cmd, cwd=project_dir)
+        return run_idf(args, project_dir)
 
     # Work around path parsing failures by building from a symlink without unsafe chars.
     link_dir = Path.home() / "esp_safe_projects"
@@ -57,15 +64,13 @@ def main() -> int:
     if not safe_link.exists():
         safe_link.symlink_to(project_dir, target_is_directory=True)
 
-    cmd = ["idf.py", *args]
     print(
         "[safe_idf] project path contains unsafe shell chars; using symlink:\n"
         f"  project: {project_dir}\n"
-        f"  symlink: {safe_link}\n"
-        f"  command: {shlex.join(cmd)}"
+        f"  symlink: {safe_link}"
     )
 
-    return subprocess.call(cmd, cwd=safe_link)
+    return run_idf(args, safe_link)
 
 
 if __name__ == "__main__":
