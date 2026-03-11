@@ -280,11 +280,10 @@ static esp_err_t radio_read_rx_payload(uint8_t *buf, uint8_t *size) {
     uint8_t status[2] = {0};
     ESP_ERROR_CHECK(radio_read_cmd(OPCODE_GET_RX_BUFFER_STATUS, status, sizeof(status)));
 
-    uint16_t payload_len = status[0];
-    uint8_t payload_len = status[0];
-    uint8_t start_ptr = status[1];
+    const uint16_t rx_payload_len = status[0];
+    const uint8_t start_ptr = status[1];
 
-    if (payload_len == 0 || payload_len > RX_BUFFER_MAX) {
+    if (rx_payload_len == 0U || rx_payload_len > (uint16_t)RX_BUFFER_MAX) {
         return ESP_ERR_INVALID_SIZE;
     }
 
@@ -292,7 +291,7 @@ static esp_err_t radio_read_rx_payload(uint8_t *buf, uint8_t *size) {
     uint8_t rx[260] = {0};
 
     spi_transaction_t t = {
-        .length = (payload_len + 3) * 8,
+        .length = (rx_payload_len + 3U) * 8U,
         .tx_buffer = tx,
         .rx_buffer = rx,
     };
@@ -301,9 +300,8 @@ static esp_err_t radio_read_rx_payload(uint8_t *buf, uint8_t *size) {
     ESP_ERROR_CHECK(spi_device_transmit(radio_spi, &t));
     wait_while_busy();
 
-    memcpy(buf, &rx[3], payload_len);
-    *size = (uint8_t)payload_len;
-    *size = payload_len;
+    memcpy(buf, &rx[3], rx_payload_len);
+    *size = (uint8_t)rx_payload_len;
     return ESP_OK;
 }
 
